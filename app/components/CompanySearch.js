@@ -1,32 +1,47 @@
-"use client"; 
+// components/CompanySearch.js
+"use client";
+
 import { useState } from 'react';
-import { useCompany } from '../context/CompanyContext'; 
+import { useRouter } from 'next/navigation';
+import { useCompany } from '../context/CompanyContext';
+
 const CompanySearch = () => {
   const [input, setInput] = useState('');
-  const { setCompany } = useCompany(); 
+  const { setCompany } = useCompany();
+  const router = useRouter();
 
   const handleSearch = async () => {
-    console.log("Fetching company data...");
-
     try {
       const response = await fetch(`https://auditcity.io/api/data/e7eba98ba5b85dbc98b8def5319ef4c3`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("Company data fetched successfully:", data);
 
-      const company = data.data.find((c) =>
-        c.name.toLowerCase().includes(input.toLowerCase()) ||
-        c.website.url.toLowerCase().includes(input.toLowerCase())
-      );
+      const foundCompany = data.data.find((c) => {
+        // Normalize input for comparison
+        const normalizedInput = input.toLowerCase();
 
-      if (company) {
-        setCompany(company);
+        // Check if name is a string and includes the search term
+        const companyNameMatch =
+          typeof c.name === 'string' && c.name.toLowerCase().includes(normalizedInput);
+
+        // Check if website is an object and has a url property, then includes the search term
+        const companyUrlMatch =
+          typeof c.website === 'object' && c.website?.url && c.website.url.toLowerCase().includes(normalizedInput);
+
+        // Allow matching if either condition is true
+        return companyNameMatch || companyUrlMatch;
+      });
+
+      if (foundCompany) {
+        setCompany(foundCompany);
+        console.log("Company data found:", foundCompany);
+        router.push('/profile'); // Navigate to the profile page
       } else {
-        setCompany(null); 
+        console.log("No matching company found.");
         alert("No matching company found.");
       }
     } catch (error) {
